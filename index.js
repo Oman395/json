@@ -18,9 +18,10 @@ function loop() {
         output: process.stdout
     });
     if (!data) {
-        rl.question('Would you like to resume previous, or start a different file (if the path you specify does not exist, a new file will be created)? R/S', (answer) => {
+        rl.question('Would you like to resume previous, or start a different file (if the path you specify does not exist, a new file will be created)? R/S ', (answer) => {
             var args = answer.split(" ");
             args[0] = args[0].toUpperCase();
+            args[0] = args[0][0];
             switch (args[0]) {
                 case "R":
                     if (usrData.resumePath) {
@@ -54,12 +55,29 @@ function loop() {
                         loop();
                     }
                     break;
+                default:
+                    console.log("Sorry, I didn't understand that. Please try again with 'R' or 'S'.");
+                    rl.close();
+                    loop();
             }
         });
     }
-    rl.question("What would you like to do? If you don't know what to do, type 'H'!", (answer) => {
+    var q = "What would you like to do? If you don't know what to do, type 'H'!";
+    if (usrData.actPath.length > 0) {
+        q += " "
+    }
+    usrData.actPath.forEach((item) => {
+        if (usrData.actPath.length - 1 > usrData.actPath.indexOf(item)) {
+            q += `${item}.`;
+        } else {
+            q += `${item}`;
+        }
+    });
+    q += " > ";
+    rl.question(q, (answer) => {
         var args = answer.split(" ");
         args[0] = args[0].toUpperCase();
+        args[0] = args[0][0];
         switch (args[0]) {
             case "H":
                 if (!args[1]) {
@@ -69,7 +87,7 @@ function loop() {
                 } else {
                     help(2, args[1]);
                     rl.close();
-                    if (!args[1] == "E") {
+                    if (args[1] != "E") {
                         loop();
                     } else {
                         fs.writeFileSync("./data.json", JSON.stringify(usrData));
@@ -79,10 +97,11 @@ function loop() {
             case "E":
                 console.log("Goodbye!");
                 fs.writeFileSync("./data.json", JSON.stringify(usrData));
+                fs.writeFileSync(usrData.resumePath, JSON.stringify(data));
                 rl.close();
                 break;
             default:
-                console.log(`Sorry, I didn't understand ${answer}. If you need help, just type 'H' when prompted for any input!`);
+                console.log(`Sorry, I didn't understand ${args[0]}. Press h if you don't know what to do.`);
                 rl.close();
                 loop();
                 break;
@@ -96,6 +115,7 @@ function loop() {
                     }
                     usrData.resumePath = `./files/${args[1]}.json`;
                     usrData.name = args[1];
+                    fs.writeFileSync("./data.json", JSON.stringify(usrData));
                     rl.close();
                     loop();
                 } else {
@@ -133,7 +153,107 @@ function loop() {
                             map += string[i];
                     }
                 }
+                var q = "";
+                usrData.actPath.forEach((item) => {
+                    q += `.${item}`;
+                });
                 console.log(map);
+                console.log(`Current path is ${usrData.name}${q}`)
+                rl.close();
+                loop();
+                break;
+            case "G":
+                if (args[1]) {
+                    try {
+                        usrData.actPath.push(args[1]);
+                    } catch {
+                        console.log("Please specify a valid path.");
+                    }
+                } else {
+                    console.log("Please specify a path.");
+                }
+                rl.close();
+                loop();
+                break;
+            case "B":
+                usrData.actPath.pop();
+                rl.close();
+                loop();
+                break;
+            case "A":
+                var currentData = data;
+                try {
+                    usrData.actPath.forEach((pathItem) => {
+                        currentData = currentData[pathItem];
+                    });
+                } catch {
+                    usrData.actPath = [];
+                    currentData = data;
+                }
+                if (args[1]) {
+                    currentData[args[1]] = {};
+                    fs.writeFileSync(usrData.resumePath, JSON.stringify(data));
+                } else {
+                    console.log("Please specify a name.");
+                }
+                rl.close();
+                loop();
+                break;
+            case "S":
+                if (args[1] && args[2]) {
+                    var currentData = data;
+                    try {
+                        usrData.actPath.forEach((pathItem) => {
+                            currentData = currentData[pathItem];
+                        });
+                    } catch {
+                        usrData.actPath = [];
+                        currentData = data;
+                    }
+                    if (!currentData[args[1]]) {
+                        currentData[args[1]] = "";
+                    }
+                    if (currentData[args[1]].length || Object.keys(currentData[args[1]]).length == 0) {
+                        currentData[args[1]] = args[2];
+                        for (let i = 3; i < args.length; i++) {
+                            currentData[args[1]] += ` ${args[i]}`;
+                        }
+                    } else {
+                        console.log("Please only write to an index without sub indexes.");
+                    }
+                } else if (args[1]) {
+                    console.log("Please add a name.");
+                } else if (args[2]) {
+                    console.log("Please add data.");
+                } else {
+                    console.log("Please add the index, and data.");
+                }
+                rl.close();
+                loop();
+                break;
+            case "D":
+                if (args[1]) {
+                    var currentData = data;
+                    try {
+                        usrData.actPath.forEach((pathItem) => {
+                            currentData = currentData[pathItem];
+                        });
+                    } catch {
+                        usrData.actPath = [];
+                        currentData = data;
+                    }
+                    if (currentData && currentData[args[1]]) {
+                        if (currentData[args[1]].length || Object.keys(currentData[args[1]]).length == 0) {
+                            delete currentData[args[1]];
+                        } else {
+                            console.log("Sorry, please don't delete items with sub items.");
+                        }
+                    } else {
+                        console.log("Sorry, that index does not exist.");
+                    }
+                } else {
+                    console.log("Please add an index.");
+                }
                 rl.close();
                 loop();
                 break;
@@ -163,6 +283,14 @@ function help(menu, item) {
         B: {
             1: "Go back a level in JSON",
             2: "It's self explanatory.",
+        },
+        A: {
+            1: "Add index",
+            2: "It's not hard man, just name the index -.-"
+        },
+        S: {
+            1: "Set value of an index, as long as it doesen't have anything after it (indexes can either be folders or data, it's pretty loose).",
+            2: "I put literally all the info on the first one, why are you here?",
         },
         E: {
             1: "Exits.",
