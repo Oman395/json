@@ -25,7 +25,7 @@ function loop() {
             switch (args[0]) {
                 case "R":
                     if (usrData.resumePath) {
-                        data = JSON.parse(fs.readFileSync(usrData.resumePath));
+                        data = JSON.parse(fs.readFileSync(`${usrData.resumePath}.json`));
                         rl.close();
                         loop();
                     } else {
@@ -39,7 +39,7 @@ function loop() {
                 case "S":
                     if (args[1]) {
                         if (fs.existsSync(`./files/${args[1]}.json`)) {
-                            data = JSON.parse(fs.readFileSync(`./files/${args[1]}`));
+                            data = JSON.parse(fs.readFileSync(`./files/${args[1]}.json`));
                         } else {
                             data = {};
                             fs.writeFileSync(`./files/${args[1]}.json`, JSON.stringify(data));
@@ -63,6 +63,7 @@ function loop() {
         });
     } else {
         var q = "What would you like to do? If you don't know what to do, type 'H'!";
+        if(!usrData.actPath) usrData.actPath = [];
         if (usrData.actPath.length > 0) {
             q += " "
         }
@@ -85,6 +86,7 @@ function loop() {
                         rl.close();
                         loop();
                     } else {
+                        args[1] = args[1].toUpperCase();
                         help(2, args[1]);
                         rl.close();
                         if (args[1] != "E") {
@@ -97,7 +99,7 @@ function loop() {
                 case "E":
                     console.log("Goodbye!");
                     fs.writeFileSync("./data.json", JSON.stringify(usrData));
-                    fs.writeFileSync(usrData.resumePath, JSON.stringify(data));
+                    fs.writeFileSync(`${usrData.resumePath}.json`, JSON.stringify(data));
                     rl.close();
                     break;
                 default:
@@ -182,17 +184,14 @@ function loop() {
                     break;
                 case "A":
                     var currentData = data;
-                    console.log(usrData.actPath);
                     usrData.actPath.forEach((pathItem) => {
                         if (pathItem) {
-                            console.log(pathItem);
-                            console.log(currentData);
                             currentData = currentData[pathItem];
                         }
                     });
                     if (args[1]) {
                         currentData[args[1]] = {};
-                        fs.writeFileSync(usrData.resumePath, JSON.stringify(data));
+                        fs.writeFileSync(`${usrData.resumePath}.json`, JSON.stringify(data));
                     } else {
                         console.log("Please specify a name.");
                     }
@@ -259,7 +258,7 @@ function loop() {
                     break;
             }
         });
-        fs.writeFileSync(usrData.resumePath, JSON.stringify(data));
+        fs.writeFileSync(`${usrData.resumePath}.json`, JSON.stringify(data));
     }
 }
 loop();
