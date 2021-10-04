@@ -63,7 +63,7 @@ function loop() {
         });
     } else {
         var q = "What would you like to do? If you don't know what to do, type 'H'!";
-        if(!usrData.actPath) usrData.actPath = [];
+        if (!usrData.actPath) usrData.actPath = [];
         if (usrData.actPath.length > 0) {
             q += " "
         }
@@ -83,7 +83,7 @@ function loop() {
                 case "H":
                     if (!args[1]) {
                         help(1);
-                        rl.close();
+                        rl.close(); 5
                         loop();
                     } else {
                         args[1] = args[1].toUpperCase();
@@ -167,7 +167,20 @@ function loop() {
                 case "G":
                     if (args[1]) {
                         try {
-                            usrData.actPath.push(args[1]);
+                            var currentData = data;
+                            var splitByDot = args[1].split('.');
+                            splitByDot.forEach((item) => {
+                                if (currentData[item]) {
+                                    if (!Object.keys(currentData[item]).length > 0) {
+                                        usrData.actPath.push(item);
+                                        currentData = currentData[item];
+                                    } else {
+                                        console.error(`${item} is data, not a folder.`);
+                                    }
+                                } else {
+                                    console.error(`${item} does not exist, the path operation will continue but you may end up where you do not want to be.`);
+                                }
+                            })
                         } catch {
                             console.log("Please specify a valid path.");
                         }
@@ -190,8 +203,20 @@ function loop() {
                         }
                     });
                     if (args[1]) {
-                        currentData[args[1]] = {};
-                        fs.writeFileSync(`${usrData.resumePath}.json`, JSON.stringify(data));
+                        if (!args[2]) {
+                            currentData[args[1]] = {};
+                            usrData.actPath.push(args[1]);
+                            fs.writeFileSync("data.json", JSON.stringify(usrData));
+                            fs.writeFileSync(`${usrData.resumePath}.json`, JSON.stringify(data));
+                        } else {
+                            var str = "";
+                            for (var i = 2; i < args.length; i++) {
+                                str += `${args[i]} `;
+                            }
+                            currentData[args[1]] = str;
+                            fs.writeFileSync("data.json", JSON.stringify(usrData));
+                            fs.writeFileSync(`${usrData.resumePath}.json`, JSON.stringify(data));
+                        }
                     } else {
                         console.log("Please specify a name.");
                     }
@@ -200,25 +225,47 @@ function loop() {
                     break;
                 case "S":
                     if (args[1] && args[2]) {
-                        var currentData = data;
-                        try {
-                            usrData.actPath.forEach((pathItem) => {
-                                currentData = currentData[pathItem];
-                            });
-                        } catch {
-                            usrData.actPath = [];
-                            currentData = data;
-                        }
-                        if (!currentData[args[1]]) {
-                            currentData[args[1]] = "";
-                        }
-                        if (currentData[args[1]].length || Object.keys(currentData[args[1]]).length == 0) {
-                            currentData[args[1]] = args[2];
-                            for (let i = 3; i < args.length; i++) {
-                                currentData[args[1]] += ` ${args[i]}`;
+                        if (args[1] != "-h" && args[1] != "-H") {
+                            var currentData = data;
+                            try {
+                                usrData.actPath.forEach((pathItem) => {
+                                    currentData = currentData[pathItem];
+                                });
+                            } catch {
+                                usrData.actPath = [];
+                                currentData = data;
+                            }
+                            if (!currentData[args[1]]) {
+                                currentData[args[1]] = "";
+                            }
+                            if (currentData[args[1]].length || Object.keys(currentData[args[1]]).length == 0) {
+                                currentData[args[1]] = args[2];
+                                for (let i = 3; i < args.length; i++) {
+                                    currentData[args[1]] += ` ${args[i]}`;
+                                }
+                            } else {
+                                console.log("Please only write to an index without sub indexes.");
                             }
                         } else {
-                            console.log("Please only write to an index without sub indexes.");
+                            var currentData = data;
+                            var active = usrData.actPath[usrData.actPath.length - 1];
+                            usrData.actPath.pop();
+                            try {
+                                usrData.actPath.forEach((pathItem) => {
+                                    currentData = currentData[pathItem];
+                                });
+                            } catch {
+                                usrData.actPath = [];
+                                currentData = data;
+                            }
+                            if (currentData[active].length || Object.keys(currentData[active]).length == 0) {
+                                currentData[active] = args[2];
+                                for (let i = 3; i < args.length; i++) {
+                                    currentData[active] += ` ${args[i]}`;
+                                }
+                            } else {
+                                console.log("Please only write to an index without sub indexes.");
+                            }
                         }
                     } else if (args[1]) {
                         console.log("Please add a name.");
@@ -232,23 +279,46 @@ function loop() {
                     break;
                 case "D":
                     if (args[1]) {
-                        var currentData = data;
-                        try {
-                            usrData.actPath.forEach((pathItem) => {
-                                currentData = currentData[pathItem];
-                            });
-                        } catch {
-                            usrData.actPath = [];
-                            currentData = data;
-                        }
-                        if (currentData && currentData[args[1]]) {
-                            if (currentData[args[1]].length || Object.keys(currentData[args[1]]).length == 0) {
-                                delete currentData[args[1]];
+                        if (args[1] != "-h" && args[1] != "-H") {
+                            var currentData = data;
+                            try {
+                                usrData.actPath.forEach((pathItem) => {
+                                    currentData = currentData[pathItem];
+                                });
+                            } catch {
+                                usrData.actPath = [];
+                                currentData = data;
+                            }
+                            if (currentData && currentData[args[1]]) {
+                                if (currentData[args[1]].length || Object.keys(currentData[args[1]]).length == 0) {
+                                    delete currentData[args[1]];
+                                } else {
+                                    console.log("Sorry, please don't delete items with sub items.");
+                                }
                             } else {
-                                console.log("Sorry, please don't delete items with sub items.");
+                                console.log("Sorry, that index does not exist.");
                             }
                         } else {
-                            console.log("Sorry, that index does not exist.");
+                            var currentData = data;
+                            var active = usrData.actPath[usrData.actPath.length - 1];
+                            usrData.actPath.pop();
+                            try {
+                                usrData.actPath.forEach((pathItem) => {
+                                    currentData = currentData[pathItem];
+                                });
+                            } catch {
+                                usrData.actPath = [];
+                                currentData = data;
+                            }
+                            if (currentData && currentData[active]) {
+                                if (currentData[active].length || Object.keys(currentData[active]).length == 0) {
+                                    delete currentData[active];
+                                } else {
+                                    console.log("Sorry, please don't delete items with sub items.");
+                                }
+                            } else {
+                                console.log("Sorry, that index does not exist.");
+                            }
                         }
                     } else {
                         console.log("Please add an index.");
@@ -286,11 +356,11 @@ function help(menu, item) {
             2: "It's self explanatory.",
         },
         A: {
-            1: "Add index",
+            1: "Add index, moves to that index.",
             2: "It's not hard man, just name the index -.-"
         },
         S: {
-            1: "Set value of an index, as long as it doesen't have anything after it (indexes can either be folders or data, it's pretty loose).",
+            1: "Set value of an index, as long as it doesen't have anything after it (indexes can either be folders or data, it's pretty loose). Type -h in the first word to set the value of the current index, and move back.",
             2: "I put literally all the info on the first one, why are you here?",
         },
         E: {
